@@ -1,5 +1,4 @@
 require 'json'
-require 'json'
 require 'nokogiri'
 require 'net/http'
 Book_base_url = "https://ncode.syosetu.com/"
