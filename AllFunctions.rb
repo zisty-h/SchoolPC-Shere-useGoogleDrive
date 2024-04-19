@@ -6,9 +6,15 @@ require 'google/apis/drive_v3'
 require 'googleauth'
 require 'googleauth/stores/file_token_store'
 require 'fileutils'
+require 'selenium'
+#require './class/twitter.rb'
+help = ""
+File.open(path="./data/search_data", mode="r") do |file|
+  file.each do |text|
+    help += text
+  end
+end
 
-# Server setting
-set :port, 5000
 # DriveAPI setting
 OOB_URI = 'urn:ietf:wg:oauth:2.0:oob'.freeze
 APPLICATION_NAME = 'Drive API Ruby Quickstart'.freeze
@@ -58,6 +64,7 @@ end
 get "/" do
   "Hello world!"
 end
+
 get "/book" do
   book_id = params[:ncode]
   puts "Book id is #{book_id}"
@@ -94,4 +101,25 @@ get "/book" do
   end
   upload title=book_title, file=file, drive_service=drive_service
   send_file file
+end
+
+get "/search" do
+  search_no = params[:q]
+  url = URI.parse("https://api.syosetu.com/novelapi/api/?genre=#{search_no.to_s}&out=json")
+  response = JSON.parse Net::HTTP.get_response(url).body
+  response.delete_at 0
+  puts response
+  response_data = {}
+  response.each do |json|
+    response_data[json["title"]] = {
+      "ncode" => json["ncode"],
+      "story" => json["story"],
+      "general_all_no" => json["general_all_no"]
+    }
+  end
+  JSON.generate response_data
+end
+
+get "/search_help" do
+  help
 end
