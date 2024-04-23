@@ -117,7 +117,7 @@ get "/search" do
       "general_all_no" => json["general_all_no"]
     }
   end
-  JSON.generate response_data
+  response_data.to_yaml.to_s
 end
 
 get "/search_help" do
