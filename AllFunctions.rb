@@ -6,7 +6,7 @@ require 'google/apis/drive_v3'
 require 'googleauth'
 require 'googleauth/stores/file_token_store'
 require 'fileutils'
-require 'selenium'
+require 'selenium-webdriver'
 #require './class/twitter.rb'
 help = ""
 File.open(path="./data/search_data", mode="r") do |file|
@@ -122,4 +122,25 @@ end
 
 get "/search_help" do
   help
+end
+
+get "/book/create" do
+  title = params[:title]
+  book_metadata = {
+    name: "#{title}.txt",
+    mime_type: 'application/vnd.google-apps.document',
+    parents: ["18LwWejCQgMHGCSVpUoCn02n7kBVybwlz"]
+  }
+  file = drive_service.create_file(book_metadata, fields: 'id')
+  file.id
+end
+
+get "/book/post" do
+  file_id = params[:id]
+  file_name = drive_service.get_file(file_id).name
+  book = drive_service.export_file(file_id, 'text/plain')
+  File.open(path="./PostBook/#{file_name}.txt", mode="w") do |file|
+    file.write book
+  end
+  return "Done"
 end
