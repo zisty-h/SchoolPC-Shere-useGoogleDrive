@@ -52,9 +52,9 @@ def decode text
   text.unpack("U*").map{ |char| [char].pack('U') }.join
 end
 
-def upload title, file, drive_service
+def upload title, file, drive_service, mode, type='text/plain'
   file_metadata = {
-    name: "#{title}.txt",
+    name: "#{title}.#{mode}",
     mime_type: 'text/plain',
     parents: [$folder_id]
   }
@@ -99,7 +99,7 @@ get "/book" do
   File.open(path=file, mode="w") do |file|
     file.write(book_text)
   end
-  upload title=book_title, file=file, drive_service=drive_service
+  upload title=book_title, file=file, drive_service=drive_service, mode="txt"
   send_file file
 end
 
@@ -144,3 +144,10 @@ get "/book/post" do
   end
   return "Done"
 end
+
+`get "/youtube/get" do
+  video_url = params[:url]
+  system("./YouTube/dist/ytdl-python.exe {video_url}")
+  upload title="download.mp4", file="./YouTube/dist/temp.mp4", drive_service=drive_service, mode="mp4", type="video/mp4"
+  "Done"
+end`
