@@ -55,7 +55,7 @@ end
 def upload title, file, drive_service, mode, type='text/plain'
   file_metadata = {
     name: "#{title}.#{mode}",
-    mime_type: 'text/plain',
+    mime_type: type,
     parents: [$folder_id]
   }
   drive_service.create_file(file_metadata, upload_source: file, fields: 'id')
@@ -145,9 +145,13 @@ get "/book/post" do
   return "Done"
 end
 
-`get "/youtube/get" do
+get "/youtube/get" do
   video_url = params[:url]
-  system("./YouTube/dist/ytdl-python.exe {video_url}")
-  upload title="download.mp4", file="./YouTube/dist/temp.mp4", drive_service=drive_service, mode="mp4", type="video/mp4"
+  system("./YouTube/dist/ytdl-python.exe #{video_url}")
+  file = Dir.glob("./*.mp4")
+  puts file[0]
+  title = File.basename(file[0], ".mp4")
+  upload title=title, file=file[0], drive_service=drive_service, mode="mp4", type="video/mp4"
+  File.delete(path=file)
   "Done"
-end`
+end
