@@ -3,11 +3,14 @@ require 'nokogiri'
 require 'net/http'
 require 'json'
 require 'google/apis/drive_v3'
+require 'google/apis/youtube_v3'
 require 'googleauth'
 require 'googleauth/stores/file_token_store'
 require 'fileutils'
 require 'selenium-webdriver'
+require 'yaml'
 #require './class/twitter.rb'
+#
 help = ""
 File.open(path="./data/search_data", mode="r") do |file|
   file.each do |text|
@@ -15,9 +18,17 @@ File.open(path="./data/search_data", mode="r") do |file|
   end
 end
 
+tokens_str = ""
+File.open(path="./data/Tokens.json", mode="r") do |file|
+  file.each do |t|
+    tokens_str += t
+  end
+end
+
+Tokens = JSON.parse tokens_str
 # DriveAPI setting
 OOB_URI = 'urn:ietf:wg:oauth:2.0:oob'.freeze
-APPLICATION_NAME = 'Drive API Ruby Quickstart'.freeze
+APPLICATION_NAME = 'School PC Service'.freeze
 CREDENTIALS_PATH = 'credentials.json'.freeze
 TOKEN_PATH = 'token.yaml'.freeze
 SCOPE = Google::Apis::DriveV3::AUTH_DRIVE_FILE
@@ -42,6 +53,9 @@ drive_service = Google::Apis::DriveV3::DriveService.new
 drive_service.client_options.application_name = APPLICATION_NAME
 drive_service.authorization = credentials
 
+youtube_service = Google::Apis::YoutubeV3::YouTubeService.new
+youtube_service.key = Tokens["YouTube"]["Token"]
+
 $folder_id = "1anMg_s1OQtEjgiSp8MGOpGCNOaIaQ3WV"
 puts "FolderID: #{$folder_id}"
 
@@ -53,11 +67,20 @@ def decode text
 end
 
 def upload title, file, drive_service, mode, type='text/plain'
-  file_metadata = {
-    name: "#{title}.#{mode}",
-    mime_type: type,
-    parents: [$folder_id]
-  }
+  if type == 'text/plain'
+    file_metadata = {
+      name: "#{title}.#{mode}",
+      mime_type: type,
+      parents: [$folder_id]
+    }
+  else
+    file_metadata = {
+      name: "#{title}.#{mode}",
+      mime_type: type,
+      parents: ["1QiUq2Yi5Xcm5l2apsIUP__tINrN-NwPx"]
+    }
+  end
+
   drive_service.create_file(file_metadata, upload_source: file, fields: 'id')
 end
 
@@ -154,4 +177,24 @@ get "/youtube/get" do
   upload title=title, file=file[0], drive_service=drive_service, mode="mp4", type="video/mp4"
   File.delete(path=file)
   "Done"
+end
+
+get "/youtube/search" do
+  query = params[:q]
+  res = youtube_service.list_searches("id,snippet", type:'video', q:query, max_results: 50).to_h
+
+  items = res[:items]
+  puts items
+  response = ''
+  items.each do |item|
+    title = item[:snippet][:title]
+    video_url = "https://www.youtube.com/watch?v=#{item[:id][:video_id]}"
+    puts "Title: #{title}\nVideo_url: #{video_url}"
+    response += "<div><h1>Title: #{title}</h1><br>\n<h2>Video_url: #{video_url}</h2><br><br></div>\n\n"
+  end
+  puts "Response"
+  File.open(path="./res.html", mode="w") do |file|
+    file.write response
+  end
+  send_file "./res.html"
 end
